@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>세모 경사로 삼각비 탐험대</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts for Easy Reading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            font-family: 'Gothic A1', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: #F0FDF4;
+            overflow-x: hidden;
+        }
+
+        /* Large touch-friendly button active effects */
+        .btn-push {
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .btn-push:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.2) !important;
+        }
+
+        /* Glowing outlines for guided hints */
+        .hint-glow-blue {
+            animation: glowBlue 1.2s infinite alternate;
+        }
+        .hint-glow-red {
+            animation: glowRed 1.2s infinite alternate;
+        }
+        .hint-glow-green {
+            animation: glowGreen 1.2s infinite alternate;
+        }
+
+        @keyframes glowBlue {
+            from { stroke: #3B82F6; filter: drop-shadow(0 0 2px #3B82F6); }
+            to { stroke: #60A5FA; stroke-width: 14; filter: drop-shadow(0 0 12px #2563EB); }
+        }
+        @keyframes glowRed {
+            from { stroke: #EF4444; filter: drop-shadow(0 0 2px #EF4444); }
+            to { stroke: #F87171; stroke-width: 14; filter: drop-shadow(0 0 12px #DC2626); }
+        }
+        @keyframes glowGreen {
+            from { stroke: #22C55E; filter: drop-shadow(0 0 2px #22C55E); }
+            to { stroke: #4ADE80; stroke-width: 14; filter: drop-shadow(0 0 12px #16A34A); }
+        }
+
+        /* Character speech bubble pulse */
+        .talk-bubble {
+            position: relative;
+            background: #FFFFFF;
+            border-radius: 1.5rem;
+            border: 4px solid #3B82F6;
+        }
+        .talk-bubble:after {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 10px 20px 10px 0;
+            border-style: solid;
+            border-color: transparent #3B82F6 transparent transparent;
+            display: block;
+            width: 0;
+        }
+
+        /* Confetti Canvas overlay */
+        #confettiCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* Number Keypad Active Style */
+        .keypad-btn {
+            font-size: 1.75rem;
+            font-weight: 800;
+            border-radius: 1rem;
+            background-color: #FFFFFF;
+            border: 3px solid #E2E8F0;
+            box-shadow: 0 4px 0 #CBD5E1;
+        }
+        .keypad-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #CBD5E1;
+        }
+
+        .side-line {
+            cursor: pointer;
+            transition: stroke-width 0.2s, stroke 0.2s;
+        }
+        .side-line:hover {
+            stroke-width: 14;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-slate-800">
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-white border-b-4 border-emerald-400 px-4 py-3 shadow-md sticky top-0 z-40">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <!-- App Logo / Title -->
+            <button onclick="goHome()" class="flex items-center gap-2 text-left focus:outline-none">
+                <div class="w-11 h-11 bg-emerald-500 rounded-2xl flex items-center justify-center text-white text-2xl shadow-md">
+                    <i class="fa-solid fa-shapes"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black text-emerald-700 tracking-tight">삼각비 탐험대</h1>
+                    <p class="text-xs text-slate-500 font-semibold">느린학습자를 위한 직관 수학</p>
+                </div>
+            </button>
+
+            <!-- Status Controls (Stars & Sound & Speech) -->
+            <div class="flex items-center gap-2">
+                <!-- Star counter -->
+                <div class="bg-amber-100 border-2 border-amber-400 px-3 py-1.5 rounded-full flex items-center gap-2 text-amber-700 font-black text-lg shadow-sm">
+                    <i class="fa-solid fa-star text-amber-500 text-xl animate-bounce"></i>
+                    <span id="globalStars">0</span>
+                </div>
+
+                <!-- Speech (TTS) Toggle -->
+                <button id="ttsToggleBtn" onclick="toggleTTS()" title="음성 설명 켜기/끄기" class="w-11 h-11 bg-indigo-100 border-2 border-indigo-400 text-indigo-700 rounded-2xl flex items-center justify-center text-xl font-bold btn-push shadow-sm">
+                    <i id="ttsIcon" class="fa-solid fa-volume-high"></i>
+                </button>
+
+                <!-- Sound Effects Toggle -->
+                <button id="sfxToggleBtn" onclick="toggleSFX()" title="효과음 켜기/끄기" class="w-11 h-11 bg-sky-100 border-2 border-sky-400 text-sky-700 rounded-2xl flex items-center justify-center text-xl font-bold btn-push shadow-sm">
+                    <i id="sfxIcon" class="fa-solid fa-music"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-4xl w-full mx-auto p-4 flex flex-col justify-center">
+
+        <!-- VIEW 1: HOME / LEVEL SELECTION MAP -->
+        <section id="viewHome" class="space-y-6">
+            <!-- Welcome Hero Banner -->
+            <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="space-y-3 text-center md:text-left">
+                    <span class="bg-emerald-300 text-emerald-900 font-extrabold text-xs px-3 py-1 rounded-full uppercase tracking-wider">중학교 3학년 수학</span>
+                    <h2 class="text-2xl md:text-3xl font-black leading-tight">삼각비의 비밀을 찾아서!</h2>
+                    <p class="text-emerald-100 font-medium text-sm md:text-base">색깔과 모양으로 쉽게 익히는 직각삼각형 변 이야기</p>
+                </div>
+                <div class="w-28 h-28 bg-white/20 rounded-3xl flex items-center justify-center text-6xl shadow-inner backdrop-blur-sm">
+                    📐
+                </div>
+            </div>
+
+            <!-- Color Key Legend Banner -->
+            <div class="bg-white rounded-2xl p-4 border-2 border-slate-200 shadow-sm">
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">약속해요! 삼각비의 3가지 색상</p>
+                <div class="grid grid-cols-3 gap-2 text-center text-xs md:text-sm font-black">
+                    <div class="bg-blue-50 border-2 border-blue-400 text-blue-700 py-2.5 rounded-xl flex flex-col md:flex-row items-center justify-center gap-1.5">
+                        <span class="w-4 h-4 rounded-full bg-blue-500 inline-block"></span>
+                        <span>빗변 (미끄럼틀)</span>
+                    </div>
+                    <div class="bg-red-50 border-2 border-red-400 text-red-700 py-2.5 rounded-xl flex flex-col md:flex-row items-center justify-center gap-1.5">
+                        <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
+                        <span>높이 (기둥)</span>
+                    </div>
+                    <div class="bg-emerald-50 border-2 border-emerald-400 text-emerald-700 py-2.5 rounded-xl flex flex-col md:flex-row items-center justify-center gap-1.5">
+                        <span class="w-4 h-4 rounded-full bg-emerald-500 inline-block"></span>
+                        <span>밑변 (바닥)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Level 1 Card -->
+                <button onclick="startLevel(1)" class="bg-white border-4 border-blue-400 hover:border-blue-500 rounded-3xl p-5 text-left transition shadow-md hover:shadow-xl btn-push group relative overflow-hidden">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-2xl bg-blue-100 border-2 border-blue-400 text-blue-600 flex items-center justify-center text-3xl font-black group-hover:scale-110 transition-transform">
+                            1
+                        </div>
+                        <div class="flex-1">
+                            <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded-full">기초 1단계</span>
+                            <h3 class="text-lg font-black text-slate-800 mt-1">변 이름 색상 연결하기</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">빗변, 높이, 밑변을 찾아서 터치해보자!</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-300 text-xl group-hover:text-blue-500"></i>
+                    </div>
+                </button>
+
+                <!-- Level 2 Card -->
+                <button onclick="startLevel(2)" class="bg-white border-4 border-purple-400 hover:border-purple-500 rounded-3xl p-5 text-left transition shadow-md hover:shadow-xl btn-push group relative overflow-hidden">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-2xl bg-purple-100 border-2 border-purple-400 text-purple-600 flex items-center justify-center text-3xl font-black group-hover:scale-110 transition-transform">
+                            2
+                        </div>
+                        <div class="flex-1">
+                            <span class="bg-purple-100 text-purple-800 text-xs font-bold px-2.5 py-0.5 rounded-full">기초 2단계</span>
+                            <h3 class="text-lg font-black text-slate-800 mt-1">sin, cos, tan 변 찾기</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">기호가 나타내는 두 변을 순서대로 선택해요</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-300 text-xl group-hover:text-purple-500"></i>
+                    </div>
+                </button>
+
+                <!-- Level 3 Card -->
+                <button onclick="startLevel(3)" class="bg-white border-4 border-amber-400 hover:border-amber-500 rounded-3xl p-5 text-left transition shadow-md hover:shadow-xl btn-push group relative overflow-hidden">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-2xl bg-amber-100 border-2 border-amber-400 text-amber-600 flex items-center justify-center text-3xl font-black group-hover:scale-110 transition-transform">
+                            3
+                        </div>
+                        <div class="flex-1">
+                            <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full">활용 3단계</span>
+                            <h3 class="text-lg font-black text-slate-800 mt-1">숫자 키판 삼각비 계산</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">길이를 보고 키패드로 분수를 직접 입력하기</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-300 text-xl group-hover:text-amber-500"></i>
+                    </div>
+                </button>
+
+                <!-- Level 4 Card -->
+                <button onclick="startLevel(4)" class="bg-white border-4 border-teal-400 hover:border-teal-500 rounded-3xl p-5 text-left transition shadow-md hover:shadow-xl btn-push group relative overflow-hidden">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-2xl bg-teal-100 border-2 border-teal-400 text-teal-600 flex items-center justify-center text-3xl font-black group-hover:scale-110 transition-transform">
+                            4
+                        </div>
+                        <div class="flex-1">
+                            <span class="bg-teal-100 text-teal-800 text-xs font-bold px-2.5 py-0.5 rounded-full">탐구 4단계</span>
+                            <h3 class="text-lg font-black text-slate-800 mt-1">실생활 경사로와 각도</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">각도가 커지면 높이는 어떻게 변할까요?</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-300 text-xl group-hover:text-teal-500"></i>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Unlimited Practice Mode Button -->
+            <button onclick="startPracticeMode()" class="w-full bg-gradient-to-r from-orange-400 to-amber-500 border-4 border-orange-300 text-white rounded-3xl p-5 flex items-center justify-between shadow-lg btn-push">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-3xl">
+                        🔥
+                    </div>
+                    <div class="text-left">
+                        <h3 class="text-xl font-black">무한 무한 연습장</h3>
+                        <p class="text-xs text-orange-100">랜덤 문제로 반복 학습하고 별 획득하기!</p>
+                    </div>
+                </div>
+                <span class="bg-white text-orange-600 font-extrabold px-4 py-2 rounded-2xl text-sm shadow-sm">도전하기</span>
+            </button>
+        </section>
+
+        <!-- VIEW 2: INTERACTIVE PLAY AREA (Levels 1 ~ 4 & Practice) -->
+        <section id="viewPlay" class="hidden space-y-4">
+            <!-- Stage Header & Progress Bar -->
+            <div class="bg-white rounded-2xl p-4 border-2 border-slate-200 shadow-sm flex items-center justify-between gap-4">
+                <button onclick="goHome()" class="text-slate-500 hover:text-slate-700 font-bold text-sm flex items-center gap-1.5 bg-slate-100 px-3 py-2 rounded-xl btn-push">
+                    <i class="fa-solid fa-arrow-left"></i> 목록으로
+                </button>
+                <div class="flex-1 max-w-xs">
+                    <div class="flex justify-between text-xs font-bold text-slate-500 mb-1">
+                        <span id="stageTitle">1단계 : 변 이름 맞추기</span>
+                        <span id="stageProgressText">1 / 5</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
+                        <div id="stageProgressBar" class="bg-emerald-500 h-full w-1/5 transition-all duration-300"></div>
+                    </div>
+                </div>
+                <button onclick="speakInstruction()" class="bg-indigo-100 text-indigo-700 border border-indigo-300 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 btn-push">
+                    <i class="fa-solid fa-volume-high"></i> 다시 듣기
+                </button>
+            </div>
+
+            <!-- Avatar Guidance Box -->
+            <div class="flex items-start gap-3">
+                <div class="w-14 h-14 bg-emerald-400 border-2 border-emerald-600 rounded-2xl flex-shrink-0 flex items-center justify-center text-3xl shadow-md">
+                    🤖
+                </div>
+                <div class="talk-bubble flex-1 p-3.5 shadow-sm">
+                    <p id="instructionText" class="text-slate-800 text-base md:text-lg font-black leading-snug">
+                        안녕! 파란색 미끄럼틀 변(빗변)을 찾아 터치해보세요!
+                    </p>
+                </div>
+            </div>
+
+            <!-- Main Interactive Canvas Area (Triangle + Controls) -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                
+                <!-- SVG Right-Angled Triangle Visualization (7 Cols on desktop) -->
+                <div class="md:col-span-7 bg-white rounded-3xl p-4 border-4 border-slate-200 shadow-md relative min-h-[280px] flex flex-col items-center justify-center">
+                    
+                    <!-- Top Angle Label Badge -->
+                    <div class="absolute top-3 left-3 bg-slate-100 border border-slate-300 text-slate-700 text-xs font-black px-3 py-1 rounded-full">
+                        기준각 <span id="angleName" class="text-indigo-600">∠A</span>
+                    </div>
+
+                    <!-- SVG Triangle Object -->
+                    <svg id="triangleSvg" viewBox="-20 -20 340 240" class="w-full h-auto max-w-[320px] overflow-visible">
+                        <!-- Right angle box indicator at C -->
+                        <path id="rightAngleMark" d="M 220 180 L 220 160 L 240 160" fill="none" stroke="#94A3B8" stroke-width="3" />
+                        
+                        <!-- Side: Base (밑변) AC (초록) -->
+                        <line id="sideBase" x1="40" y1="180" x2="240" y2="180" class="side-line" stroke="#22C55E" stroke-width="10" stroke-linecap="round" onclick="handleSideClick('base')" />
+                        
+                        <!-- Side: Height (높이) BC (빨강) -->
+                        <line id="sideHeight" x1="240" y1="180" x2="240" y2="40" class="side-line" stroke="#EF4444" stroke-width="10" stroke-linecap="round" onclick="handleSideClick('height')" />
+                        
+                        <!-- Side: Hypotenuse (빗변) AB (파랑) -->
+                        <line id="sideHypotenuse" x1="40" y1="180" x2="240" y2="40" class="side-line" stroke="#3B82F6" stroke-width="10" stroke-linecap="round" onclick="handleSideClick('hypotenuse')" />
+                        
+                        <!-- Vertex Points -->
+                        <circle cx="40" cy="180" r="7" fill="#475569" />
+                        <circle cx="240" cy="180" r="7" fill="#475569" />
+                        <circle cx="240" cy="40" r="7" fill="#475569" />
+                        
+                        <!-- Vertex Labels -->
+                        <text x="18" y="195" font-size="18" font-weight="900" fill="#1E293B">A</text>
+                        <text x="250" y="195" font-size="18" font-weight="900" fill="#1E293B">C (직각)</text>
+                        <text x="250" y="35" font-size="18" font-weight="900" fill="#1E293B">B</text>
+
+                        <!-- Side Length / Name Overlay Labels -->
+                        <!-- Hypotenuse label -->
+                        <g id="labelHypotenuseGroup" transform="translate(125, 95)">
+                            <rect x="-35" y="-14" width="70" height="28" rx="8" fill="#DBEAFE" stroke="#3B82F6" stroke-width="2"/>
+                            <text id="labelHypotenuse" x="0" y="5" text-anchor="middle" font-size="13" font-weight="900" fill="#1E40AF">빗변</text>
+                        </g>
+
+                        <!-- Height label -->
+                        <g id="labelHeightGroup" transform="translate(265, 110)">
+                            <rect x="-35" y="-14" width="70" height="28" rx="8" fill="#FEE2E2" stroke="#EF4444" stroke-width="2"/>
+                            <text id="labelHeight" x="0" y="5" text-anchor="middle" font-size="13" font-weight="900" fill="#991B1B">높이</text>
+                        </g>
+
+                        <!-- Base label -->
+                        <g id="labelBaseGroup" transform="translate(140, 205)">
+                            <rect x="-35" y="-14" width="70" height="28" rx="8" fill="#DCFCE7" stroke="#22C55E" stroke-width="2"/>
+                            <text id="labelBase" x="0" y="5" text-anchor="middle" font-size="13" font-weight="900" fill="#166534">밑변</text>
+                        </g>
+                    </svg>
+
+                    <!-- Hint Button -->
+                    <button id="hintBtn" onclick="showHint()" class="absolute bottom-3 right-3 bg-amber-100 hover:bg-amber-200 border-2 border-amber-400 text-amber-800 font-extrabold text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm btn-push">
+                        <i class="fa-solid fa-lightbulb text-amber-500"></i> 힌트 보기
+                    </button>
+                </div>
+
+                <!-- Interaction Workspace (5 Cols on desktop) -->
+                <div class="md:col-span-5 space-y-4">
+
+                    <!-- LEVEL 1 CONTROLS: Side Selection Buttons -->
+                    <div id="ctrlLevel1" class="bg-white rounded-3xl p-4 border-2 border-slate-200 shadow-sm space-y-2.5">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider text-center">원하는 변을 선택해 주세요</p>
+                        <button onclick="handleSideClick('hypotenuse')" class="w-full bg-blue-50 hover:bg-blue-100 border-3 border-blue-400 text-blue-800 rounded-2xl py-3 px-4 font-black text-lg flex items-center justify-between btn-push shadow-sm">
+                            <span>🔵 파란색 변 (빗변)</span>
+                            <i class="fa-solid fa-hand-pointer"></i>
+                        </button>
+                        <button onclick="handleSideClick('height')" class="w-full bg-red-50 hover:bg-red-100 border-3 border-red-400 text-red-800 rounded-2xl py-3 px-4 font-black text-lg flex items-center justify-between btn-push shadow-sm">
+                            <span>🔴 빨간색 변 (높이)</span>
+                            <i class="fa-solid fa-hand-pointer"></i>
+                        </button>
+                        <button onclick="handleSideClick('base')" class="w-full bg-emerald-50 hover:bg-emerald-100 border-3 border-emerald-400 text-emerald-800 rounded-2xl py-3 px-4 font-black text-lg flex items-center justify-between btn-push shadow-sm">
+                            <span>🟢 초록색 변 (밑변)</span>
+                            <i class="fa-solid fa-hand-pointer"></i>
+                        </button>
+                    </div>
+
+                    <!-- LEVEL 2 CONTROLS: Sin / Cos / Tan Ratio Helper -->
+                    <div id="ctrlLevel2" class="bg-white rounded-3xl p-4 border-2 border-slate-200 shadow-sm space-y-3 hidden">
+                        <div class="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-3 text-center">
+                            <span id="ratioSymbolName" class="text-2xl font-black text-indigo-700">sin A</span>
+                            <p id="ratioGuideFormula" class="text-xs font-bold text-indigo-900 mt-1">
+                                = <span class="text-blue-600 font-extrabold">빗변</span> 분의 <span class="text-red-600 font-extrabold">높이</span>
+                            </p>
+                        </div>
+                        
+                        <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-center">
+                            <p class="text-xs font-bold text-slate-500 mb-2">두 개의 변을 순서대로 클릭하세요!</p>
+                            <div class="flex items-center justify-center gap-3">
+                                <div id="selectedSide1" class="w-24 h-12 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center font-black text-sm text-slate-400 bg-white">
+                                    첫 번째 변
+                                </div>
+                                <span class="text-slate-400 font-black">/</span>
+                                <div id="selectedSide2" class="w-24 h-12 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center font-black text-sm text-slate-400 bg-white">
+                                    두 번째 변
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="resetSideSelection()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-xl text-xs btn-push">
+                            <i class="fa-solid fa-rotate-left"></i> 선택 다시하기
+                        </button>
+                    </div>
+
+                    <!-- LEVEL 3 & PRACTICE CONTROLS: Custom On-screen Number Keypad (숫자 키판) -->
+                    <div id="ctrlKeypad" class="bg-white rounded-3xl p-4 border-2 border-slate-200 shadow-md space-y-3 hidden">
+                        <!-- Fraction Display Input -->
+                        <div class="bg-slate-50 border-2 border-slate-300 rounded-2xl p-3 flex items-center justify-between">
+                            <span class="text-xs font-black text-slate-500">입력된 삼각비:</span>
+                            <div class="flex items-center gap-2">
+                                <div id="keypadFractionBox" class="flex flex-col items-center bg-white px-4 py-1 border-2 border-indigo-400 rounded-xl min-w-[70px]">
+                                    <span id="inputNumerator" class="text-lg font-black text-indigo-600 border-b-2 border-slate-800 w-full text-center px-1">?</span>
+                                    <span id="inputDenominator" class="text-lg font-black text-blue-600 w-full text-center px-1">?</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Target Field Selector Toggle -->
+                        <div class="grid grid-cols-2 gap-2 text-xs font-extrabold">
+                            <button id="targetNumBtn" onclick="setKeypadTarget('num')" class="py-2 rounded-xl bg-indigo-600 text-white shadow-sm">
+                                ✏️ 위쪽 (분자/높이) 입력
+                            </button>
+                            <button id="targetDenBtn" onclick="setKeypadTarget('den')" class="py-2 rounded-xl bg-slate-100 text-slate-600 border border-slate-300">
+                                ✏️ 아래쪽 (분모/빗변) 입력
+                            </button>
+                        </div>
+
+                        <!-- 3x4 Onscreen Number Pad (숫자 키판) -->
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="pressKey('1')" class="keypad-btn py-3 text-slate-800">1</button>
+                            <button onclick="pressKey('2')" class="keypad-btn py-3 text-slate-800">2</button>
+                            <button onclick="pressKey('3')" class="keypad-btn py-3 text-slate-800">3</button>
+                            <button onclick="pressKey('4')" class="keypad-btn py-3 text-slate-800">4</button>
+                            <button onclick="pressKey('5')" class="keypad-btn py-3 text-slate-800">5</button>
+                            <button onclick="pressKey('6')" class="keypad-btn py-3 text-slate-800">6</button>
+                            <button onclick="pressKey('7')" class="keypad-btn py-3 text-slate-800">7</button>
+                            <button onclick="pressKey('8')" class="keypad-btn py-3 text-slate-800">8</button>
+                            <button onclick="pressKey('9')" class="keypad-btn py-3 text-slate-800">9</button>
+                            <button onclick="pressKey('clear')" class="keypad-btn py-3 bg-rose-50 text-rose-600 border-rose-200">지움</button>
+                            <button onclick="pressKey('0')" class="keypad-btn py-3 text-slate-800">0</button>
+                            <button onclick="submitKeypadAnswer()" class="keypad-btn py-3 bg-emerald-500 text-white border-emerald-600 shadow-md">확인</button>
+                        </div>
+                    </div>
+
+                    <!-- LEVEL 4 CONTROLS: Ramp Angle Slider Simulation -->
+                    <div id="ctrlLevel4" class="bg-white rounded-3xl p-4 border-2 border-slate-200 shadow-sm space-y-4 hidden">
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-sm font-black text-slate-700">
+                                <span>경사로 각도 선택</span>
+                                <span id="angleDisplay" class="text-teal-600 font-extrabold text-base">30°</span>
+                            </div>
+                            <!-- Angle buttons for 30, 45, 60 degrees -->
+                            <div class="grid grid-cols-3 gap-2 pt-1">
+                                <button onclick="setRampAngle(30)" id="angle30Btn" class="py-2.5 rounded-xl font-black bg-teal-600 text-white shadow-sm">30°</button>
+                                <button onclick="setRampAngle(45)" id="angle45Btn" class="py-2.5 rounded-xl font-black bg-slate-100 text-slate-700 border border-slate-300">45°</button>
+                                <button onclick="setRampAngle(60)" id="angle60Btn" class="py-2.5 rounded-xl font-black bg-slate-100 text-slate-700 border border-slate-300">60°</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-teal-50 border border-teal-200 rounded-2xl p-3 text-xs font-bold text-teal-900 space-y-1">
+                            <p>💡 <span class="font-extrabold">알아두기:</span> 각도가 커질수록 미끄럼틀을 올라가기 위해 필요한 <span class="text-red-600 font-extrabold">높이</span>가 점점 더 커집니다!</p>
+                        </div>
+
+                        <button onclick="verifyRampQuestion()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3 rounded-2xl text-base btn-push shadow-md">
+                            정답 제출하기 ✨
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Level Complete Celebration Modal -->
+    <div id="modalComplete" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-5 border-4 border-amber-400 shadow-2xl transform scale-100 transition-transform">
+            <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center text-5xl mx-auto border-4 border-amber-400 animate-bounce">
+                🏆
+            </div>
+            <div>
+                <h3 class="text-2xl font-black text-slate-800">참 잘했어요!</h3>
+                <p id="modalSubtext" class="text-slate-500 font-bold text-sm mt-1">스테이지를 모두 완수했습니다!</p>
+            </div>
+            
+            <!-- Earned Stars Animation Container -->
+            <div class="flex justify-center gap-2 text-3xl text-amber-400 py-2">
+                <i class="fa-solid fa-star animate-pulse"></i>
+                <i class="fa-solid fa-star animate-pulse delay-100"></i>
+                <i class="fa-solid fa-star animate-pulse delay-200"></i>
+            </div>
+
+            <div class="space-y-2">
+                <button onclick="nextLevelOrHome()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3.5 rounded-2xl text-lg btn-push shadow-lg">
+                    다음 학습 진행하기 🚀
+                </button>
+                <button onclick="goHome()" class="w-full bg-slate-100 text-slate-600 font-extrabold py-2.5 rounded-xl text-xs hover:bg-slate-200 btn-push">
+                    메인 메뉴로 돌아가기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ====================================================================
+           AUDIO SYNTHESIZER & SPEECH (TTS) SYSTEM
+           No external mp3 downloads required. Uses Web Audio API & Web Speech API.
+           ==================================================================== */
+        let sfxEnabled = true;
+        let ttsEnabled = true;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Web Audio synthesized sound generator
+        function playSound(type) {
+            if (!sfxEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'pop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else if (type === 'retry') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(200, now + 0.2);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'fanfare') {
+                // Happy completion chords
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g);
+                    g.connect(audioCtx.destination);
+                    o.type = 'triangle';
+                    o.frequency.setValueAtTime(freq, now + i * 0.12);
+                    g.gain.setValueAtTime(0.3, now + i * 0.12);
+                    g.gain.linearRampToValueAtTime(0.01, now + i * 0.12 + 0.4);
+                    o.start(now + i * 0.12);
+                    o.stop(now + i * 0.12 + 0.4);
+                });
+            }
+        }
+
+        // Web Speech Synthesis (Korean TTS)
+        function speakText(text) {
+            if (!ttsEnabled || !('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel(); // cancel ongoing speech
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ko-KR';
+            utterance.rate = 0.9; // Slightly slower for slow learners
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function toggleTTS() {
+            ttsEnabled = !ttsEnabled;
+            const icon = document.getElementById('ttsIcon');
+            const btn = document.getElementById('ttsToggleBtn');
+            if (ttsEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                btn.className = 'w-11 h-11 bg-indigo-100 border-2 border-indigo-400 text-indigo-700 rounded-2xl flex items-center justify-center text-xl font-bold btn-push shadow-sm';
+                speakText("음성 안내가 켜졌습니다.");
+            } else {
+                window.speechSynthesis.cancel();
+                icon.className = 'fa-solid fa-volume-xmark';
+                btn.className = 'w-11 h-11 bg-slate-100 border-2 border-slate-300 text-slate-400 rounded-2xl flex items-center justify-center text-xl font-bold btn-push shadow-sm';
+            }
+        }
+
+        function toggleSFX() {
+            sfxEnabled = !sfxEnabled;
+            const icon = document.getElementById('sfxIcon');
+            const btn = document.getElementById('sfxToggleBtn');
+            if (sfxEnabled) {
+                icon.className = 'fa-solid fa-music';
+                btn.className = 'w-11 h-11 bg-sky-100 border-2 border-sky-400 text-sky-700 rounded-2xl flex items-center justify-center text-xl font-bold btn-push shadow-sm';
+                playSound('pop');
+            } else {
+                icon.className = 'fa-solid fa-ban';
+                btn.className = 'w-11 h-11 bg-slate-100 border-2 border-slate-300 text-slate-400 rounded-2xl flex items-center justify-center text-xl font-bold btn-push shadow-sm';
+            }
+        }
+
+        /* ====================================================================
+           APP STATE & GAME DATA
+           ==================================================================== */
+        let currentLevel = 1;
+        let currentStep = 0;
+        let totalSteps = 5;
+        let globalStars = 0;
+        let isPracticeMode = false;
+
+        // Current Question State
+        let currentQuestion = {
+            targetSide: 'hypotenuse', // hypotenuse, height, base
+            ratioType: 'sin',         // sin, cos, tan
+            numVal: 3,
+            denVal: 5,
+            baseVal: 4,
+            selectedSides: [],
+            rampAngle: 30
+        };
+
+        let keypadTarget = 'num'; // 'num' (numerator) or 'den' (denominator)
+        let keypadNum = '';
+        let keypadDen = '';
+
+        /* ====================================================================
+           LEVEL DEFINITIONS & QUESTION GENERATION
+           ==================================================================== */
+        const level1Questions = [
+            { targetSide: 'hypotenuse', text: '가장 긴 미끄럼틀! 파란색 빗변을 찾아 터치하세요.' },
+            { targetSide: 'height', text: '위로 우뚝 솟은 빨간색 높이(기둥)를 찾아보세요.' },
+            { targetSide: 'base', text: '바닥에 평평하게 누운 초록색 밑변을 클릭하세요.' },
+            { targetSide: 'hypotenuse', text: '직각 건너편에 있는 파란색 빗변은 어디일까요?' },
+            { targetSide: 'height', text: '각도 건너편에 바로 마주보고 서 있는 빨간색 높이를 찾아보세요!' }
+        ];
+
+        const level2Questions = [
+            { ratioType: 'sin', side1: 'hypotenuse', side2: 'height', text: 'sin A는 [파란 빗변] 분의 [빨간 높이] 입니다. 파란변, 빨간변 순서로 클릭하세요!' },
+            { ratioType: 'cos', side1: 'hypotenuse', side2: 'base', text: 'cos A는 [파란 빗변] 분의 [초록 밑변] 입니다. 파란변, 초록변 순서로 클릭하세요!' },
+            { ratioType: 'tan', side1: 'base', side2: 'height', text: 'tan A는 [초록 밑변] 분의 [빨간 높이] 입니다. 초록변, 빨간변 순서로 클릭하세요!' },
+            { ratioType: 'sin', side1: 'hypotenuse', side2: 'height', text: '한 번 더! sin A의 길인 [파란 빗변] $\\rightarrow$ [빨간 높이]를 터치해 주세요.' },
+            { ratioType: 'cos', side1: 'hypotenuse', side2: 'base', text: '멋져요! cos A의 길인 [파란 빗변] $\\rightarrow$ [초록 밑변]을 눌러주세요.' }
+        ];
+
+        const pythagoreanTriples = [
+            { hyp: 5, h: 3, b: 4 },
+            { hyp: 10, h: 6, b: 8 },
+            { hyp: 13, h: 5, b: 12 },
+            { hyp: 5, h: 4, b: 3 }
+        ];
+
+        /* Navigation Functions */
+        function goHome() {
+            playSound('pop');
+            document.getElementById('viewHome').classList.remove('hidden');
+            document.getElementById('viewPlay').classList.add('hidden');
+            document.getElementById('modalComplete').classList.add('hidden');
+            window.speechSynthesis.cancel();
+        }
+
+        function startLevel(lvl) {
+            playSound('pop');
+            currentLevel = lvl;
+            currentStep = 0;
+            isPracticeMode = false;
+            totalSteps = 5;
+
+            document.getElementById('viewHome').classList.add('hidden');
+            document.getElementById('viewPlay').classList.remove('hidden');
+            
+            loadStep();
+        }
+
+        function startPracticeMode() {
+            playSound('pop');
+            currentLevel = 3;
+            currentStep = 0;
+            isPracticeMode = true;
+            totalSteps = 99; // Continuous
+
+            document.getElementById('viewHome').classList.add('hidden');
+            document.getElementById('viewPlay').classList.remove('hidden');
+
+            loadStep();
+        }
+
+        /* Load Question Logic per Step */
+        function loadStep() {
+            // Update Progress Bar
+            document.getElementById('stageProgressText').innerText = isPracticeMode ? `무한 연습 (${currentStep + 1}번째)` : `${currentStep + 1} / ${totalSteps}`;
+            const pct = isPracticeMode ? 100 : ((currentStep + 1) / totalSteps) * 100;
+            document.getElementById('stageProgressBar').style.width = `${pct}%`;
+
+            // Clear Highlights
+            clearGlows();
+
+            // Toggle Control Panels
+            document.getElementById('ctrlLevel1').classList.add('hidden');
+            document.getElementById('ctrlLevel2').classList.add('hidden');
+            document.getElementById('ctrlKeypad').classList.add('hidden');
+            document.getElementById('ctrlLevel4').classList.add('hidden');
+
+            if (currentLevel === 1) {
+                setupLevel1();
+            } else if (currentLevel === 2) {
+                setupLevel2();
+            } else if (currentLevel === 3) {
+                setupLevel3();
+            } else if (currentLevel === 4) {
+                setupLevel4();
+            }
+        }
+
+        /* --------------------------------------------------------------------
+           LEVEL 1 SETUP
+           -------------------------------------------------------------------- */
+        function setupLevel1() {
+            document.getElementById('stageTitle').innerText = '1단계: 변 이름 맞추기';
+            document.getElementById('ctrlLevel1').classList.remove('hidden');
+
+            const q = level1Questions[currentStep % level1Questions.length];
+            currentQuestion.targetSide = q.targetSide;
+
+            // Display labels as Side Names
+            document.getElementById('labelHypotenuse').textContent = "빗변";
+            document.getElementById('labelHeight').textContent = "높이";
+            document.getElementById('labelBase').textContent = "밑변";
+
+            setInstruction(q.text);
+        }
+
+        /* --------------------------------------------------------------------
+           LEVEL 2 SETUP
+           -------------------------------------------------------------------- */
+        function setupLevel2() {
+            document.getElementById('stageTitle').innerText = '2단계: sin, cos, tan 변 찾기';
+            document.getElementById('ctrlLevel2').classList.remove('hidden');
+
+            const q = level2Questions[currentStep % level2Questions.length];
+            currentQuestion.ratioType = q.ratioType;
+            currentQuestion.side1 = q.side1;
+            currentQuestion.side2 = q.side2;
+            currentQuestion.selectedSides = [];
+
+            // Reset selected UI boxes
+            resetSideSelection();
+
+            // Update ratio indicator text
+            const sym = document.getElementById('ratioSymbolName');
+            const formula = document.getElementById('ratioGuideFormula');
+
+            if (q.ratioType === 'sin') {
+                sym.innerText = 'sin A (사인)';
+                formula.innerHTML = '= <span class="text-blue-600 font-extrabold">빗변</span> 분의 <span class="text-red-600 font-extrabold">높이</span> (S자 길)';
+            } else if (q.ratioType === 'cos') {
+                sym.innerText = 'cos A (코사인)';
+                formula.innerHTML = '= <span class="text-blue-600 font-extrabold">빗변</span> 분의 <span class="text-emerald-600 font-extrabold">밑변</span> (C자 길)';
+            } else if (q.ratioType === 'tan') {
+                sym.innerText = 'tan A (탄젠트)';
+                formula.innerHTML = '= <span class="text-emerald-600 font-extrabold">밑변</span> 분의 <span class="text-red-600 font-extrabold">높이</span> (T자 길)';
+            }
+
+            document.getElementById('labelHypotenuse').textContent = "빗변";
+            document.getElementById('labelHeight').textContent = "높이";
+            document.getElementById('labelBase').textContent = "밑변";
+
+            setInstruction(q.text);
+        }
+
+        /* --------------------------------------------------------------------
+           LEVEL 3 SETUP & KEYPAD
+           -------------------------------------------------------------------- */
+        function setupLevel3() {
+            document.getElementById('stageTitle').innerText = isPracticeMode ? '무한 연습장: 삼각비 구하기' : '3단계: 숫자 키판 삼각비 계산';
+            document.getElementById('ctrlKeypad').classList.remove('hidden');
+
+            // Pick a Pythagorean triple
+            const triple = pythagoreanTriples[currentStep % pythagoreanTriples.length];
+            currentQuestion.numVal = triple.h;
+            currentQuestion.denVal = triple.hyp;
+            currentQuestion.baseVal = triple.b;
+
+            // Pick ratio randomly or systematically
+            const ratios = ['sin', 'cos', 'tan'];
+            const rType = ratios[currentStep % 3];
+            currentQuestion.ratioType = rType;
+
+            // Render numbers on the triangle!
+            document.getElementById('labelHypotenuse').textContent = triple.hyp;
+            document.getElementById('labelHeight').textContent = triple.h;
+            document.getElementById('labelBase').textContent = triple.b;
+
+            // Clear keypad inputs
+            keypadNum = '';
+            keypadDen = '';
+            setKeypadTarget('num');
+            updateKeypadDisplay();
+
+            let targetText = "";
+            if (rType === 'sin') {
+                currentQuestion.correctNum = triple.h;
+                currentQuestion.correctDen = triple.hyp;
+                targetText = `sin A의 값을 만들어 보세요! (높이 ${triple.h} / 빗변 ${triple.hyp})`;
+            } else if (rType === 'cos') {
+                currentQuestion.correctNum = triple.b;
+                currentQuestion.correctDen = triple.hyp;
+                targetText = `cos A의 값을 만들어 보세요! (밑변 ${triple.b} / 빗변 ${triple.hyp})`;
+            } else if (rType === 'tan') {
+                currentQuestion.correctNum = triple.h;
+                currentQuestion.correctDen = triple.b;
+                targetText = `tan A의 값을 만들어 보세요! (높이 ${triple.h} / 밑변 ${triple.b})`;
+            }
+
+            setInstruction(targetText);
+        }
+
+        /* --------------------------------------------------------------------
+           LEVEL 4 SETUP: Ramp Simulation
+           -------------------------------------------------------------------- */
+        function setupLevel4() {
+            document.getElementById('stageTitle').innerText = '4단계: 실생활 경사로 탐구';
+            document.getElementById('ctrlLevel4').classList.remove('hidden');
+
+            setRampAngle(30);
+
+            document.getElementById('labelHypotenuse').textContent = "경사로";
+            document.getElementById('labelHeight').textContent = "높이";
+            document.getElementById('labelBase').textContent = "바닥";
+
+            setInstruction("경사로의 각도 버튼을 누르고, 높이가 어떻게 변하는지 관찰해 보세요!");
+        }
+
+        function setRampAngle(angle) {
+            playSound('pop');
+            currentQuestion.rampAngle = angle;
+
+            document.getElementById('angleDisplay').innerText = `${angle}°`;
+
+            // Reset button highlights
+            [30, 45, 60].forEach(a => {
+                const btn = document.getElementById(`angle${a}Btn`);
+                if (a === angle) {
+                    btn.className = "py-2.5 rounded-xl font-black bg-teal-600 text-white shadow-sm";
+                } else {
+                    btn.className = "py-2.5 rounded-xl font-black bg-slate-100 text-slate-700 border border-slate-300";
+                }
+            });
+
+            // Adjust Triangle SVG shape visually based on angle!
+            const heightLine = document.getElementById('sideHeight');
+            const hypLine = document.getElementById('sideHypotenuse');
+            const labelHeightG = document.getElementById('labelHeightGroup');
+            const labelHypG = document.getElementById('labelHypotenuseGroup');
+
+            let newY = 40;
+            if (angle === 30) newY = 110;
+            else if (angle === 45) newY = 70;
+            else if (angle === 60) newY = 30;
+
+            // Animate height change
+            heightLine.setAttribute('y2', newY);
+            hypLine.setAttribute('y2', newY);
+
+            // Update label positioning
+            labelHeightG.setAttribute('transform', `translate(265, ${(180 + newY)/2})`);
+            labelHypG.setAttribute('transform', `translate(125, ${(180 + newY)/2})`);
+        }
+
+        function verifyRampQuestion() {
+            playSound('correct');
+            addStars(1);
+            speakText("잘했어요! 각도가 높을수록 경사로 높이가 커진다는 사실을 배웠습니다!");
+            handleStepSuccess();
+        }
+
+        /* --------------------------------------------------------------------
+           USER INTERACTION & ANSWER VALIDATION
+           -------------------------------------------------------------------- */
+        function handleSideClick(side) {
+            playSound('pop');
+
+            if (currentLevel === 1) {
+                if (side === currentQuestion.targetSide) {
+                    playSound('correct');
+                    addStars(1);
+                    speakText("정답입니다! 잘 찾아내셨어요!");
+                    handleStepSuccess();
+                } else {
+                    playSound('retry');
+                    speakText("다시 한번 생각해봐요! 정답인 변 색상을 확인해보세요.");
+                    highlightSide(currentQuestion.targetSide);
+                }
+            } else if (currentLevel === 2) {
+                // Collect two sides
+                if (currentQuestion.selectedSides.length < 2) {
+                    currentQuestion.selectedSides.push(side);
+                    updateLevel2SideBoxes();
+                }
+
+                if (currentQuestion.selectedSides.length === 2) {
+                    const [s1, s2] = currentQuestion.selectedSides;
+                    if (s1 === currentQuestion.side1 && s2 === currentQuestion.side2) {
+                        playSound('correct');
+                        addStars(1);
+                        speakText("정확해요! 삼각비의 길을 잘 따라갔습니다.");
+                        handleStepSuccess();
+                    } else {
+                        playSound('retry');
+                        speakText("순서가 틀렸거나 변을 잘못 골랐어요. 다시 시도해봐요!");
+                        setTimeout(() => resetSideSelection(), 1200);
+                    }
+                }
+            }
+        }
+
+        function updateLevel2SideBoxes() {
+            const sideMap = {
+                'hypotenuse': { name: '🔵 빗변', class: 'bg-blue-100 border-blue-400 text-blue-800' },
+                'height': { name: '🔴 높이', class: 'bg-red-100 border-red-400 text-red-800' },
+                'base': { name: '🟢 밑변', class: 'bg-emerald-100 border-emerald-400 text-emerald-800' }
+            };
+
+            const box1 = document.getElementById('selectedSide1');
+            const box2 = document.getElementById('selectedSide2');
+
+            if (currentQuestion.selectedSides[0]) {
+                const info = sideMap[currentQuestion.selectedSides[0]];
+                box1.innerText = info.name;
+                box1.className = `w-24 h-12 rounded-xl border-2 flex items-center justify-center font-black text-xs ${info.class}`;
+            }
+
+            if (currentQuestion.selectedSides[1]) {
+                const info = sideMap[currentQuestion.selectedSides[1]];
+                box2.innerText = info.name;
+                box2.className = `w-24 h-12 rounded-xl border-2 flex items-center justify-center font-black text-xs ${info.class}`;
+            }
+        }
+
+        function resetSideSelection() {
+            currentQuestion.selectedSides = [];
+            const box1 = document.getElementById('selectedSide1');
+            const box2 = document.getElementById('selectedSide2');
+            box1.innerText = "첫 번째 변";
+            box1.className = "w-24 h-12 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center font-black text-sm text-slate-400 bg-white";
+            box2.innerText = "두 번째 변";
+            box2.className = "w-24 h-12 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center font-black text-sm text-slate-400 bg-white";
+        }
+
+        /* --------------------------------------------------------------------
+           KEYPAD LOGIC (Level 3 & Practice Mode)
+           -------------------------------------------------------------------- */
+        function setKeypadTarget(target) {
+            playSound('pop');
+            keypadTarget = target;
+            const btnNum = document.getElementById('targetNumBtn');
+            const btnDen = document.getElementById('targetDenBtn');
+
+            if (target === 'num') {
+                btnNum.className = "py-2 rounded-xl bg-indigo-600 text-white shadow-sm font-extrabold";
+                btnDen.className = "py-2 rounded-xl bg-slate-100 text-slate-600 border border-slate-300 font-extrabold";
+            } else {
+                btnDen.className = "py-2 rounded-xl bg-indigo-600 text-white shadow-sm font-extrabold";
+                btnNum.className = "py-2 rounded-xl bg-slate-100 text-slate-600 border border-slate-300 font-extrabold";
+            }
+        }
+
+        function pressKey(val) {
+            playSound('pop');
+            if (val === 'clear') {
+                if (keypadTarget === 'num') keypadNum = '';
+                else keypadDen = '';
+            } else {
+                if (keypadTarget === 'num') {
+                    if (keypadNum.length < 2) keypadNum += val;
+                } else {
+                    if (keypadDen.length < 2) keypadDen += val;
+                }
+            }
+            updateKeypadDisplay();
+        }
+
+        function updateKeypadDisplay() {
+            document.getElementById('inputNumerator').innerText = keypadNum === '' ? '?' : keypadNum;
+            document.getElementById('inputDenominator').innerText = keypadDen === '' ? '?' : keypadDen;
+        }
+
+        function submitKeypadAnswer() {
+            const userN = parseInt(keypadNum, 10);
+            const userD = parseInt(keypadDen, 10);
+
+            if (isNaN(userN) || isNaN(userD)) {
+                playSound('retry');
+                speakText("분자와 분모 숫자를 모두 입력해 주세요!");
+                return;
+            }
+
+            if (userN === currentQuestion.correctNum && userD === currentQuestion.correctDen) {
+                playSound('correct');
+                addStars(2);
+                speakText("대단해요! 정답 분수를 완성했습니다!");
+                handleStepSuccess();
+            } else {
+                playSound('retry');
+                speakText("아쉽네요, 숫자를 다시 확인해보고 입력해보세요.");
+            }
+        }
+
+        /* --------------------------------------------------------------------
+           PROGRESS & REWARDS
+           -------------------------------------------------------------------- */
+        function handleStepSuccess() {
+            currentStep++;
+            if (!isPracticeMode && currentStep >= totalSteps) {
+                setTimeout(() => showCompletionModal(), 600);
+            } else {
+                setTimeout(() => loadStep(), 1200);
+            }
+        }
+
+        function addStars(num) {
+            globalStars += num;
+            document.getElementById('globalStars').innerText = globalStars;
+        }
+
+        function showCompletionModal() {
+            playSound('fanfare');
+            triggerConfetti();
+            document.getElementById('modalSubtext').innerText = `${currentLevel}단계를 멋지게 완료했습니다!`;
+            document.getElementById('modalComplete').classList.remove('hidden');
+            speakText("축하합니다! 스테이지를 모두 완수했습니다!");
+        }
+
+        function nextLevelOrHome() {
+            document.getElementById('modalComplete').classList.add('hidden');
+            if (currentLevel < 4) {
+                startLevel(currentLevel + 1);
+            } else {
+                goHome();
+            }
+        }
+
+        /* Helper visuals & hints */
+        function setInstruction(msg) {
+            document.getElementById('instructionText').innerHTML = msg;
+            speakText(msg);
+        }
+
+        function speakInstruction() {
+            const text = document.getElementById('instructionText').innerText;
+            speakText(text);
+        }
+
+        function showHint() {
+            playSound('pop');
+            if (currentLevel === 1) {
+                highlightSide(currentQuestion.targetSide);
+                speakText("반짝이는 변을 눌러보세요!");
+            } else if (currentLevel === 2) {
+                highlightSide(currentQuestion.side1);
+                setTimeout(() => highlightSide(currentQuestion.side2), 1000);
+                speakText("반짝이는 두 변을 순서대로 눌러보세요.");
+            } else if (currentLevel === 3) {
+                speakText(`정답은 ${currentQuestion.correctNum} 분의 ${currentQuestion.correctDen} 입니다.`);
+            } else if (currentLevel === 4) {
+                speakText("각도 버튼을 눌러 경사로의 모양 변화를 확인하세요.");
+            }
+        }
+
+        function highlightSide(side) {
+            clearGlows();
+            let elId = '';
+            if (side === 'hypotenuse') elId = 'sideHypotenuse';
+            else if (side === 'height') elId = 'sideHeight';
+            else if (side === 'base') elId = 'sideBase';
+
+            if (elId) {
+                const el = document.getElementById(elId);
+                const glowClass = side === 'hypotenuse' ? 'hint-glow-blue' : (side === 'height' ? 'hint-glow-red' : 'hint-glow-green');
+                el.classList.add(glowClass);
+                setTimeout(() => el.classList.remove(glowClass), 2500);
+            }
+        }
+
+        function clearGlows() {
+            ['sideHypotenuse', 'sideHeight', 'sideBase'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.className.baseVal = "side-line";
+            });
+        }
+
+        /* Canvas Particle Confetti Animation */
+        function triggerConfetti() {
+            const canvas = document.getElementById('confettiCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#3B82F6', '#EF4444', '#22C55E', '#F59E0B', '#8B5CF6'];
+
+            for (let i = 0; i < 80; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: (Math.random() - 0.7) * 12,
+                    size: Math.random() * 10 + 6,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * 360
+                });
+            }
+
+            let frame = 0;
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.25; // gravity
+                    p.rotation += 4;
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.rotation * Math.PI) / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                    ctx.restore();
+                });
+
+                frame++;
+                if (frame < 90) requestAnimationFrame(render);
+                else ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            render();
+        }
+
+        // Initialize Audio Context on first interaction
+        window.addEventListener('click', () => initAudio(), { once: true });
+        window.addEventListener('touchstart', () => initAudio(), { once: true });
+    </script>
+</body>
+</html>
